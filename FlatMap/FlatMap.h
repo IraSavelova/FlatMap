@@ -1,7 +1,5 @@
 #ifndef FlatMap_h
 #define FlatMap_h
-typedef std::string Key;
-
 template <class Key, class Value>
 class FlatMap
 {
@@ -25,8 +23,16 @@ public:
             data[i] = b.data[i];
         }
     }
-    FlatMap(const FlatMap& b);
-    FlatMap(FlatMap&& b);
+    FlatMap(FlatMap&& b)
+    {
+        data = b.data;
+        capacity = b.capacity;
+        sizeArray = b.sizeArray;
+        b.data = nullptr;
+        b.capacity = 0;
+        b.sizeArray = 0;
+        
+    }
     FlatMap& operator=(const FlatMap& b)
     {// Если не совпадает capacity, то нужно вызвать resize()
         if (this == &b)
@@ -58,16 +64,30 @@ public:
             capacity = b.capacity;
             DefaultSize = b.DefaultSize;
             return *this;
-        }
+        } //а надо ли делать DefaultSize = b.DefaultSize;?
     }
     FlatMap&& operator=(FlatMap&& b)
     {
-        // почистить исходный массив, скопировать значения всех свойств, после чего
-        // data = b.data;
+        if (this == &b)
+            return *this;
+        delete[] data;
+        data = b.data;
+        capacity = b.capacity;
+        sizeArray = b.sizeArray;
+        // Обнуляем b для предотвращения удаления данных при разрушении b
+        b.data = nullptr;
+        b.capacity = 0;
+        b.sizeArray = 0;
+        
     }
     
     
-    void swap(FlatMap& b);
+    void swap(FlatMap& b)
+    {
+        std::swap(data, b.data);
+        std::swap(capacity, b.capacity);
+        std::swap(sizeArray, b.sizeArray);
+    }
     void clear()
     {
         if (sizeArray == 0) return;
@@ -189,7 +209,7 @@ private:
         delete[] data;
         data = newData;
     }
-
+    //бинарный поиск, который возвращает либо место найденого и true, либо место, куда нужно вставить и false.
     size_t BinarySearch(const Key k, bool& ok) const
     {
         if (sizeArray == 0) { ok = true; return 0; }
@@ -209,70 +229,29 @@ private:
         ok = false;
         return l;
     }
-    int partition(std::pair<Key, Value>* data, int start, int end)
-    {
-        // Выбираем крайний правый элемент в качестве опорного элемента массива
-        int pivot = data[end].first;
-        // элементы, меньшие точки поворота, будут перемещены влево от `pIndex`
-        // элементы больше, чем точка поворота, будут сдвинуты вправо от `pIndex`
-        // равные элементы могут идти в любом направлении
-        int pIndex = start;
-        // каждый раз, когда мы находим элемент, меньший или равный опорному, `pIndex`
-        // увеличивается, и этот элемент будет помещен перед опорной точкой.
-        for (int i = start; i < end; i++)
-        {
-            if (data[i].first <= pivot)
-            {
-                swap(data[i], data[pIndex]);
-                pIndex++;
-            }
-        }
-        // поменять местами `pIndex` с пивотом
-        swap(data[pIndex], data[end]);
-
-        // вернуть `pIndex` (индекс опорного элемента)
-        return pIndex;
-    }
-
-    // Процедура быстрой сортировки
-    void quickSort(std::pair<Key, Value>* data, int start, int end)
-    {
-        // базовое условие
-        if (start >= end) {
-            return;
-        }
-        // переставить элементы по оси
-        int pivot = partition(data, start, end);
-
-        // повторяем подмассив, содержащий элементы, меньшие опорной точки
-        quickSort(data, start, pivot - 1);
-
-        // повторяем подмассив, содержащий элементы, превышающие точку опоры
-        quickSort(data, pivot + 1, end);
-    }
-    FlatMap(FlatMap&& b);
-    void swap(FlatMap& b);
-
 
     friend bool operator==(const FlatMap& a, const FlatMap& b);
     friend bool operator!=(const FlatMap& a, const FlatMap& b);
 };
-bool operator==(const FlatMap& a, const FlatMap& b) {//оператор сравнения (дружественные операторы)
+//дружественные операторы сравнения
+template<class Key, class Value>
+bool operator==(const FlatMap<Key, Value>& a, const FlatMap<Key, Value>& b) {
     if (a.sizeArray == b.sizeArray) {
         for (int i = 0; i < a.sizeArray; i++) {
-            if!(a.data[i].first == b.data[i].first) return false;
-            if!(a.data[i].second == b.data[i].second) return false
+            if(!(a.data[i].first == b.data[i].first)) return false;
+            if(!(a.data[i].second == b.data[i].second)) return false;
         }
         return true;
     }
     else
         return false;
 }
-bool operator!=(const FlatMap& a, const FlatMap& b) {//оператор сравнения (дружественные операторы)
+template <class Key, class Value>
+bool operator!=(const FlatMap<Key, Value>& a, const FlatMap<Key, Value>& b) {
     if (a.sizeArray != b.sizeArray) return true;
     for (int i = 0; i < a.sizeArray; i++) {
-        if!(a.data[i].first == b.data[i].first) return true;
-        if!(a.data[i].second == b.data[i].second) return true;
+        if(!(a.data[i].first == b.data[i].first)) return true;
+        if(!(a.data[i].second == b.data[i].second)) return true;
     }
     return false;
 }
